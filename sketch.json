@@ -1,0 +1,7 @@
+{
+  "cpu": {
+    "fqbn": "arduino:avr:micro",
+    "name": "Arduino Micro",
+    "port": "serial:///dev/ttyACM0"
+  }
+}
