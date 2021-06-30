@@ -9,6 +9,8 @@ const long BAUDRATE = 9600;
 byte comBuffer[256];
 uint8_t comBufferPtr = 0;
 
+float gpu_temperature;
+
 void setBacklight(uint8_t red, uint8_t green, uint8_t blue){
     analogWrite(RED_LED, red);
     analogWrite(GREEN_LED, green);
@@ -47,21 +49,43 @@ void setup() {
 }
 
 void processMessage() {
+    switch(comBuffer[0]) {
+        case 0x11:
+            gpu_temperature = decodeFloat();
+    }
+    //float gpu;
+    //byte temp[] = {comBuffer[1], comBuffer[2], comBuffer[3], comBuffer[4]};
+    //memcpy(&gpu, &temp, 4);
+
     //char string[8];
-    //memcpy(string, comBuffer, 8);
-    float gpu;
-    byte temp[] = {comBuffer[1], comBuffer[2], comBuffer[3], comBuffer[4]};
-    memcpy(&gpu, &temp, 4);
+    //dtostrf(gpu, 1, 1, string);
 
-    char string[8];
-    dtostrf(gpu, 1, 1, string);
-
-    lcd.clear();
-    lcd.write("GPU: ");
-    lcd.write(string);
-    lcd.write(" C");
+    //lcd.clear();
+    //lcd.write("GPU: ");
+    //lcd.write(string);
+    //lcd.write(" C");
 }
 
+float decodeFloat(){
+    float f;
+    byte temp[] = {comBuffer[1], comBuffer[2], comBuffer[3], comBuffer[4]};
+    memcpy(&f, &temp, 4);
+    return f;
+}
+
+void updateLCD(){
+    char string[16] = "GPU: xx.y  C    ";
+    string[10] = 223;
+    char temp[4];
+    dtostrf(gpu_temperature, 4, 1, temp);
+    string[5] = temp[0];
+    string[6] = temp[1];
+    string[7] = temp[2];
+    string[8] = temp[3];
+
+    lcd.clear();
+    lcd.write(string);
+}
 
 void loop() {
     uint8_t tries = 0;
@@ -77,7 +101,8 @@ void loop() {
             }
         }
     }
-    delayMicroseconds(1000);
+    delay(250);
+    updateLCD();
 }
 
 void runLightShow(){
