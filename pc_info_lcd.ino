@@ -1,15 +1,20 @@
 #include <LiquidCrystal.h>
 
-const int rs = 2, en = 3, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
+const int RS = 2, EN = 3, D4 = 4, D5 = 5, D6 = 6, D7 = 7;
 const int LED_ANODE = 8, RED_LED = 9, GREEN_LED = 10, BLUE_LED = 11;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+const int LEFT_POT_PIN = A4, RIGHT_POT_PIN = A5;
 
 const long BAUDRATE = 9600;
+const int POT_MIN = 90, POT_MAX = 1023;
 
 byte comBuffer[256];
 uint8_t comBufferPtr = 0;
 
 float gpu_temperature;
+int left_pot = 0, right_pot = 0;
+bool left_pot_updated;
+
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 void setBacklight(uint8_t red, uint8_t green, uint8_t blue){
     analogWrite(RED_LED, red);
@@ -66,6 +71,17 @@ void processMessage() {
     //lcd.write(" C");
 }
 
+void processHardwareInputs() {
+    int temp = analogRead(LEFT_POT_PIN);
+    if (abs(temp - left_pot)  > 3) {
+        left_pot_updated = true;
+        left_pot = temp;
+    }
+    else {
+        left_pot_updated = false;
+    }
+}
+
 float decodeFloat(){
     float f;
     byte temp[] = {comBuffer[1], comBuffer[2], comBuffer[3], comBuffer[4]};
@@ -74,17 +90,42 @@ float decodeFloat(){
 }
 
 void updateLCD(){
-    char string[16] = "GPU: xx.y  C    ";
-    string[10] = 223;
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    char gpu_string[16] = "GPU: xx.y  C    ";
+    gpu_string[10] = 223;
     char temp[4];
     dtostrf(gpu_temperature, 4, 1, temp);
-    string[5] = temp[0];
-    string[6] = temp[1];
-    string[7] = temp[2];
-    string[8] = temp[3];
+    gpu_string[5] = temp[0];
+    gpu_string[6] = temp[1];
+    gpu_string[7] = temp[2];
+    gpu_string[8] = temp[3];
+    lcd.write(gpu_string);
 
-    lcd.clear();
-    lcd.write(string);
+    lcd.setCursor(0, 1);
+    char pot_string[16] = "Pot.:          ";
+    sprintf(temp, "%i", left_pot);
+    pot_string[6] = temp[0];
+    pot_string[7] = temp[1];
+    pot_string[8] = temp[2];
+    pot_string[9] = temp[3];
+    lcd.write(pot_string);
+}
+
+void updateLCDColors(){
+    if (left_pot < 91) {
+        setBacklight(0, 230, 230);
+    }
+    else if (left_pot < 110) {
+        setBacklight(230, 0, 230);
+    }
+    else if (left_pot < 130) {
+        setBacklight(230, 230, 0);
+    }
+    else if (left_pot < 150) {
+        setBacklight(230, 230, 230);
+    }
 }
 
 void loop() {
@@ -102,7 +143,11 @@ void loop() {
         }
     }
     delay(250);
+    processHardwareInputs();
     updateLCD();
+    if (left_pot_updated) {
+        updateLCDColors();
+    }
 }
 
 void runLightShow(){
