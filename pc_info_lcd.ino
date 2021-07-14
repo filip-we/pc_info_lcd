@@ -1,5 +1,11 @@
 #include <LiquidCrystal.h>
 
+struct RGB {
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+};
+
 const int RS = 2, EN = 3, D4 = 4, D5 = 5, D6 = 6, D7 = 7;
 const int LED_ANODE = 8, RED_LED = 9, GREEN_LED = 10, BLUE_LED = 11;
 const int LEFT_POT_PIN = A4, RIGHT_POT_PIN = A5;
@@ -11,8 +17,22 @@ byte comBuffer[256];
 uint8_t comBufferPtr = 0;
 
 float gpu_temperature;
-int left_pot = 0, right_pot = 0;
+float left_pot = 0, right_pot = 0;
 bool left_pot_updated;
+bool right_pot_updated;
+
+const RGB COLOR_PRESETS[12] = {
+    {uint8_t(255),   uint8_t(255),  uint8_t(255)},
+    {uint8_t(0),   uint8_t(255),  uint8_t(128)},
+    {uint8_t(0),   uint8_t(128),  uint8_t(255)},
+    {uint8_t(0),   uint8_t(255),  uint8_t(255)},
+    {uint8_t(128), uint8_t(255),    uint8_t(0)},
+    {uint8_t(255), uint8_t(128),    uint8_t(0)},
+    {uint8_t(255), uint8_t(255),    uint8_t(0)},
+    {uint8_t(255),   uint8_t(0),  uint8_t(128)},
+    {uint8_t(128),   uint8_t(0),  uint8_t(255)},
+    {uint8_t(255),   uint8_t(0),  uint8_t(255)}
+};
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
@@ -22,9 +42,12 @@ void setBacklight(uint8_t red, uint8_t green, uint8_t blue){
     analogWrite(BLUE_LED, blue);
 }
 
-void showOff(uint8_t red, uint8_t green, uint8_t blue){
-    setBacklight(red, green, blue);
-    delay(2000);
+void setBacklight(RGB rgb, float brightness){
+    float scale = 1.0 - (0.0 + brightness) / 1.0;
+    setBacklight(uint8_t(rgb.red * scale),
+            uint8_t(rgb.green * scale),
+            uint8_t(rgb.blue * scale)
+    );
 }
 
 void setupComs(){
@@ -43,12 +66,13 @@ void setup() {
     pinMode(RED_LED, OUTPUT);
     pinMode(GREEN_LED, OUTPUT);
     pinMode(BLUE_LED, OUTPUT);
-    setBacklight(0, 230, 230);
+    processHardwareInputs();
+    updateLCDColors();
 
     lcd.begin(16,2);
     lcd.clear();
     lcd.write("Hello, Dave!");
-    delay(1000);
+    delay(800);
 
     setupComs();
 }
@@ -58,27 +82,22 @@ void processMessage() {
         case 0x11:
             gpu_temperature = decodeFloat();
     }
-    //float gpu;
-    //byte temp[] = {comBuffer[1], comBuffer[2], comBuffer[3], comBuffer[4]};
-    //memcpy(&gpu, &temp, 4);
-
-    //char string[8];
-    //dtostrf(gpu, 1, 1, string);
-
-    //lcd.clear();
-    //lcd.write("GPU: ");
-    //lcd.write(string);
-    //lcd.write(" C");
 }
 
 void processHardwareInputs() {
-    int temp = analogRead(LEFT_POT_PIN);
-    if (abs(temp - left_pot)  > 3) {
+    left_pot_updated = false;
+    right_pot_updated = false;
+
+    float temp = (float(analogRead(LEFT_POT_PIN)) - 90.0) / 1023.0;
+    if (abs(temp - left_pot)  > 0.02) {
         left_pot_updated = true;
         left_pot = temp;
     }
-    else {
-        left_pot_updated = false;
+
+    temp = (float(analogRead(RIGHT_POT_PIN)) - 90.0) / 1023.0;
+    if (abs(temp - right_pot)  > 0.02) {
+        right_pot_updated = true;
+        right_pot = temp;
     }
 }
 
@@ -90,8 +109,6 @@ float decodeFloat(){
 }
 
 void updateLCD(){
-    lcd.clear();
-
     lcd.setCursor(0, 0);
     char gpu_string[16] = "GPU: xx.y  C    ";
     gpu_string[10] = 223;
@@ -104,28 +121,23 @@ void updateLCD(){
     lcd.write(gpu_string);
 
     lcd.setCursor(0, 1);
-    char pot_string[16] = "Pot.:          ";
-    sprintf(temp, "%i", left_pot);
-    pot_string[6] = temp[0];
-    pot_string[7] = temp[1];
-    pot_string[8] = temp[2];
-    pot_string[9] = temp[3];
+    char pot_string[16] = "P1:xxxx P2:xxx";
+    sprintf(temp, "%d.%02d", (int) left_pot, (int)(left_pot * 100) % 100);
+    pot_string[3] = temp[0];
+    pot_string[4] = temp[1];
+    pot_string[5] = temp[2];
+    pot_string[6] = temp[3];
+    sprintf(temp, "%d.%02d", (int) right_pot, (int)(right_pot * 100) % 100);
+    pot_string[11] = temp[0];
+    pot_string[12] = temp[1];
+    pot_string[13] = temp[2];
+    pot_string[14] = temp[3];
     lcd.write(pot_string);
 }
 
 void updateLCDColors(){
-    if (left_pot < 91) {
-        setBacklight(0, 230, 230);
-    }
-    else if (left_pot < 110) {
-        setBacklight(230, 0, 230);
-    }
-    else if (left_pot < 130) {
-        setBacklight(230, 230, 0);
-    }
-    else if (left_pot < 150) {
-        setBacklight(230, 230, 230);
-    }
+    uint8_t n = floor( (sizeof(COLOR_PRESETS) - 1) * left_pot);
+    setBacklight(COLOR_PRESETS[n], right_pot); // right_pot is between 0 and 1
 }
 
 void loop() {
@@ -145,69 +157,7 @@ void loop() {
     delay(250);
     processHardwareInputs();
     updateLCD();
-    if (left_pot_updated) {
+    if (left_pot_updated or right_pot_updated) {
         updateLCDColors();
     }
-}
-
-void runLightShow(){
-    uint8_t red = 255;
-    uint8_t green = 255;
-    uint8_t blue = 255;
-
-    lcd.clear();
-    lcd.write("Green");
-    for (int i = 255; i >= 0; i--){
-      delay(25);
-      green -= 1;
-      setBacklight(red, green, blue);
-    }
-
-    lcd.clear();
-    lcd.write("Blue");
-    for (int i = 255; i >= 0; i--){
-      delay(25);
-      blue -= 1;
-      setBacklight(red, green, blue);
-    }
-
-    lcd.clear();
-    lcd.write("Red");
-    for (int i = 255; i >= 0; i--){
-      delay(25);
-      red -= 1;
-      setBacklight(red, green, blue);
-    }
-
-
-    lcd.clear();
-    lcd.write("Some colors!");
-    delay(2000);
-    showOff(255, 255, 255);
-
-    showOff(0,   128,   128);
-    showOff(0,   255,   128);
-    showOff(0,   128,   255);
-    showOff(0,   255,   255);
-
-    showOff(128, 128,     0);
-    showOff(128, 255,     0);
-    showOff(255, 128,     0);
-    showOff(255, 255,     0);
-
-    showOff(128,   0,   128);
-    showOff(255,   0,   128);
-    showOff(128,   0,   255);
-    showOff(255,   0,   255);
-
-    showOff(128, 128,   128);
-    showOff(128, 255,   128);
-    showOff(128, 128,   255);
-    showOff(128, 255,   255);
-
-    showOff(255, 128,   128);
-    showOff(255, 255,   128);
-    showOff(255, 128,   255);
-    showOff(255, 255,   255);
-
 }
