@@ -1,10 +1,26 @@
 #PC-Info-LCD
 
-A simple but working way to display status signals from a PC to an external LCD-screen via an Arduino.
+This project lets you display status signals from a PC to an external LCD character screen.
 
+Firmware for Arduino Nano
 The backgroud color of the LCD can be adjusted with a potentiometer.
 
 # Hardware
+## Bill of materials
+1. Character LCD, 1 pcs.
+    - Should be compatible with the HD44780-controller. The LCD used here also has RGB-lighting.
+2. Arduino Nano, 1 pcs.
+3. 500 kOhm potentiometers, 2 pcs.
+    - Used in the user input-gauges.
+4. 10 kOhm potentiometer, 1 pcs.
+    - To adjust contrast of the text on the LCD.
+5. 10 kOhm resistor, 2 pcs.
+    - Offset for potentiometers
+
+## Circuit diagram
+Circuit diagram was made with help from this website: https://www.circuit-diagram.org/editor/
+
+
 ### LCD
 RegisterSelect = Arduino pin 2
 Enable = Arduino pin 3
@@ -18,5 +34,5 @@ Green LED cathode = Arduino pin 10
 Blue LED cathode = Arduino pin 11
 
 ### Potentiometers
-Left potentiometer = A4
-Right potentiometer = A5
+Left potentiometer = A0
+Right potentiometer = A1

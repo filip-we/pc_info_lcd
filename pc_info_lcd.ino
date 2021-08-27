@@ -8,7 +8,7 @@ struct RGB {
 
 const int RS = 2, EN = 3, D4 = 4, D5 = 5, D6 = 6, D7 = 7;
 const int LED_ANODE = 8, RED_LED = 9, GREEN_LED = 10, BLUE_LED = 11;
-const int LEFT_POT_PIN = A4, RIGHT_POT_PIN = A5;
+const int LEFT_POT_PIN = A0, RIGHT_POT_PIN = A1;
 
 const long BAUDRATE = 9600;
 const int POT_MIN = 90, POT_MAX = 1023;
@@ -21,17 +21,41 @@ float left_pot = 0, right_pot = 0;
 bool left_pot_updated;
 bool right_pot_updated;
 
-const RGB COLOR_PRESETS[12] = {
-    {uint8_t(255),   uint8_t(255),  uint8_t(255)},
-    {uint8_t(0),   uint8_t(255),  uint8_t(128)},
-    {uint8_t(0),   uint8_t(128),  uint8_t(255)},
+const RGB COLOR_PRESETS[31] = {
+    {uint8_t(0),   uint8_t(0),    uint8_t(0)},
+    {uint8_t(128), uint8_t(128),  uint8_t(128)},
+    {uint8_t(191), uint8_t(191),  uint8_t(191)},
+    {uint8_t(255), uint8_t(255),  uint8_t(255)},
+
     {uint8_t(0),   uint8_t(255),  uint8_t(255)},
-    {uint8_t(128), uint8_t(255),    uint8_t(0)},
-    {uint8_t(255), uint8_t(128),    uint8_t(0)},
-    {uint8_t(255), uint8_t(255),    uint8_t(0)},
-    {uint8_t(255),   uint8_t(0),  uint8_t(128)},
-    {uint8_t(128),   uint8_t(0),  uint8_t(255)},
-    {uint8_t(255),   uint8_t(0),  uint8_t(255)}
+    {uint8_t(0),   uint8_t(255),  uint8_t(191)},
+    {uint8_t(0),   uint8_t(255),  uint8_t(128)},
+    {uint8_t(0),   uint8_t(191),  uint8_t(255)},
+    {uint8_t(0),   uint8_t(191),  uint8_t(191)},
+    {uint8_t(0),   uint8_t(191),  uint8_t(128)},
+    {uint8_t(0),   uint8_t(128),  uint8_t(255)},
+    {uint8_t(0),   uint8_t(128),  uint8_t(191)},
+    {uint8_t(0),   uint8_t(128),  uint8_t(128)},
+
+    {uint8_t(255), uint8_t(0),    uint8_t(255)},
+    {uint8_t(255), uint8_t(0),    uint8_t(191)},
+    {uint8_t(255), uint8_t(0),    uint8_t(128)},
+    {uint8_t(191), uint8_t(0),    uint8_t(255)},
+    {uint8_t(191), uint8_t(0),    uint8_t(191)},
+    {uint8_t(191), uint8_t(0),    uint8_t(128)},
+    {uint8_t(128), uint8_t(0),    uint8_t(255)},
+    {uint8_t(128), uint8_t(0),    uint8_t(191)},
+    {uint8_t(128), uint8_t(0),    uint8_t(128)},
+
+    {uint8_t(255), uint8_t(255),  uint8_t(0)},
+    {uint8_t(255), uint8_t(191),  uint8_t(0)},
+    {uint8_t(255), uint8_t(128),  uint8_t(0)},
+    {uint8_t(191), uint8_t(255),  uint8_t(0)},
+    {uint8_t(191), uint8_t(191),  uint8_t(0)},
+    {uint8_t(191), uint8_t(128),  uint8_t(0)},
+    {uint8_t(128), uint8_t(255),  uint8_t(0)},
+    {uint8_t(128), uint8_t(191),  uint8_t(0)},
+    {uint8_t(128), uint8_t(128),  uint8_t(0)},
 };
 
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
@@ -42,11 +66,10 @@ void setBacklight(uint8_t red, uint8_t green, uint8_t blue){
     analogWrite(BLUE_LED, blue);
 }
 
-void setBacklight(RGB rgb, float brightness){
-    float scale = 1.0 - (0.0 + brightness) / 1.0;
-    setBacklight(uint8_t(rgb.red * scale),
-            uint8_t(rgb.green * scale),
-            uint8_t(rgb.blue * scale)
+void setBacklight(RGB rgb){
+    setBacklight(uint8_t(rgb.red),
+            uint8_t(rgb.green),
+            uint8_t(rgb.blue)
     );
 }
 
@@ -74,7 +97,7 @@ void setup() {
     lcd.write("Hello, Dave!");
     delay(800);
 
-    setupComs();
+    //setupComs();
 }
 
 void processMessage() {
@@ -137,7 +160,7 @@ void updateLCD(){
 
 void updateLCDColors(){
     uint8_t n = floor( (sizeof(COLOR_PRESETS) - 1) * left_pot);
-    setBacklight(COLOR_PRESETS[n], right_pot); // right_pot is between 0 and 1
+    setBacklight(COLOR_PRESETS[n]);
 }
 
 void loop() {
