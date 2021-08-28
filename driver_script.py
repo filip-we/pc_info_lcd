@@ -20,8 +20,8 @@ def send_msg(data):
         ser.port = port
 
         ser.open()
-        print("Reading...")
-        print(ser.read(64))
+        #print("Reading...")
+        #print(ser.read(64))
 
         print("Writing...")
         print(data)
@@ -46,7 +46,14 @@ def get_gpu_temp():
     gpu = float(gpu)
     return bytearray(struct.pack("<f", gpu)) + bytearray(3)
 
+def get_cpu_status():
+    sensors = check_output("sensors")
+    sensors = sensors.decode("utf-8").split("\n\n")
+    print(sensors)
+
+
 data = bytearray(b'\x11') + get_gpu_temp()
 
 send_msg(data)
 
+get_cpu_status()
