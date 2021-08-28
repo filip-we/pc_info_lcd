@@ -73,14 +73,17 @@ void setBacklight(RGB rgb){
     );
 }
 
+void updateLCDColors(){
+    uint8_t n = floor( (sizeof(COLOR_PRESETS) - 1) * left_pot);
+    setBacklight(COLOR_PRESETS[n]);
+}
+
 void setupComs(){
     Serial.begin(BAUDRATE);
     Serial.setTimeout(1);
     delay(100);
-    //Serial.println("ok");
-    //lcd.clear();
-    //lcd.write("Connecting...");
-    //while(!Serial){};
+    Serial.println("ok");
+    while(!Serial){};
 }
 
 void setup() {
@@ -97,7 +100,7 @@ void setup() {
     lcd.write("Hello, Dave!");
     delay(800);
 
-    //setupComs();
+    setupComs();
 }
 
 void processMessage() {
@@ -156,11 +159,6 @@ void updateLCD(){
     pot_string[13] = temp[2];
     pot_string[14] = temp[3];
     lcd.write(pot_string);
-}
-
-void updateLCDColors(){
-    uint8_t n = floor( (sizeof(COLOR_PRESETS) - 1) * left_pot);
-    setBacklight(COLOR_PRESETS[n]);
 }
 
 void loop() {

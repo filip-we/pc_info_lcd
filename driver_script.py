@@ -4,14 +4,24 @@ from subprocess import check_output
 from time import sleep
 
 baud = 9600
-interface = "/dev/ttyACM0"
+port = "/dev/ttyUSB0"
+
+check_output(["stty", "-F", port, "-hupcl"])
 
 def send_msg(data):
     try:
-        ser = serial.Serial(interface, baud, timeout=2, writeTimeout=2)
-        #sleep(0.2)
-        #print("Reading...")
-        #print(ser.read(8))
+        ser = serial.Serial(None,
+                baud,
+                timeout=2,
+                writeTimeout=2,
+                )
+
+        sleep(0.2)
+        ser.port = port
+
+        ser.open()
+        print("Reading...")
+        print(ser.read(64))
 
         print("Writing...")
         print(data)
@@ -37,9 +47,6 @@ def get_gpu_temp():
     return bytearray(struct.pack("<f", gpu)) + bytearray(3)
 
 data = bytearray(b'\x11') + get_gpu_temp()
-print(type(data))
-print(len(data))
-print(data)
+
 send_msg(data)
-print("Goodbye!")
 
